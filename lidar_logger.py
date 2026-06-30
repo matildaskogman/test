@@ -47,8 +47,13 @@ def main():
                 if not raw_line:
                     continue
 
+                # Sensor lines look like "1.00 m" or "1.00m" — strip the unit
+                # suffix and any whitespace before parsing the number.
+                text = raw_line.decode("utf-8", errors="ignore").strip()
+                text = text.replace("m", "").strip()
+
                 try:
-                    distance_m = float(raw_line.decode("utf-8").strip())
+                    distance_m = float(text)
                 except ValueError:
                     # Ignore lines that aren't valid numbers (e.g. startup noise)
                     continue
