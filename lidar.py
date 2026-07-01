@@ -61,12 +61,18 @@ def build_packet(command_id: int, data: bytes = b"", write: bool = False) -> byt
     """Build a binary protocol request packet.
 
     Packet structure: start | flags_low | flags_high | id | data | crc_low | crc_high
+
+    Per manual table 6:
+      - Flags bits 15-6: payload length
+      - Flags bit 0: write bit (1 = write, 0 = read)
+    Payload is just command_id byte followed by data bytes.
     """
-    payload = bytes([command_id | (1 if write else 0)]) + data
+    payload = bytes([command_id]) + data
     payload_length = len(payload)
 
-    # Flags: payload length in upper bits, write bit in bit 0 of flags_low
-    flags = payload_length << 6
+    # Payload length occupies bits 15-6 of the 16-bit flags word.
+    # Write bit occupies bit 0 of flags_low.
+    flags = (payload_length << 6) | (1 if write else 0)
     flags_low = flags & 0xFF
     flags_high = (flags >> 8) & 0xFF
 
@@ -177,7 +183,7 @@ def main():
             print("Fel: kunde inte kommunicera med sensorn. Kontrollera anslutning och att sensorn är i Full communication mode.")
             return
 
-        # Set return mode to First return
+        # Set return mode to Last return (best for terrain measurement)
         print("Sätter Return mode: Last return...")
         if not send_write_command(ser, CMD_RETURN_MODE, bytes([RETURN_FIRST])):
             print("Varning: kunde inte sätta Return mode.")
